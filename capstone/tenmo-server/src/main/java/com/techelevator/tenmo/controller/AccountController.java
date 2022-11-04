@@ -18,9 +18,9 @@ public class AccountController {
         this.accountDao = accountDao;
     }
 
-    @RequestMapping(path = "/accounts/{account_id}?balance=", method = RequestMethod.GET)
-    public BigDecimal getBalanceByAccountId(long accountId){
-        return this.accountDao.getBalanceById(accountId);
+    @RequestMapping(path = "/accounts/{account_id}/balance", method = RequestMethod.GET)
+    public BigDecimal getBalanceByAccountId(@PathVariable long account_id){
+        return this.accountDao.getBalanceById(account_id);
     }
 
     @ResponseStatus(HttpStatus.ACCEPTED)

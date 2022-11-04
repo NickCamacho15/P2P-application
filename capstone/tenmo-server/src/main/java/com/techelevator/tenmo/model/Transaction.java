@@ -1,5 +1,6 @@
 package com.techelevator.tenmo.model;
 
+import javax.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 public class Transaction {
@@ -7,14 +8,13 @@ public class Transaction {
     private long transactionId;
     private long fromAccount;
     private long toAccount;
-    private String transactionType;
+    @Positive
     private BigDecimal amount;
 
-    public Transaction(long transactionId, long fromAccount, long toAccount, String transactionType, BigDecimal amount) {
+    public Transaction(long transactionId, long fromAccount, long toAccount,BigDecimal amount) {
         this.transactionId = transactionId;
         this.fromAccount = fromAccount;
         this.toAccount = toAccount;
-        this.transactionType = transactionType;
         this.amount = amount;
     }
 
@@ -44,14 +44,6 @@ public class Transaction {
 
     public void setToAccount(long toAccount) {
         this.toAccount = toAccount;
-    }
-
-    public String getTransactionType() {
-        return transactionType;
-    }
-
-    public void setTransactionType(String transactionType) {
-        this.transactionType = transactionType;
     }
 
     public BigDecimal getAmount() {

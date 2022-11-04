@@ -2,6 +2,7 @@ package com.techelevator.tenmo.dao;
 
 import com.techelevator.tenmo.model.Account;
 import com.techelevator.tenmo.model.Transaction;
+import com.techelevator.tenmo.model.User;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
@@ -14,6 +15,7 @@ import java.util.List;
 @Component
 public class JdbcTransactionDao implements TransactionDao {
 
+    private JdbcUserDao jdbcUserDao;
     private JdbcTemplate jdbcTemplate;
     private JdbcAccountDao jdbcAccountDao;
     private BigDecimal ZERO = new BigDecimal("0");
@@ -30,7 +32,7 @@ public class JdbcTransactionDao implements TransactionDao {
     @Override
     public List<Transaction> listTransactions(long id) {
         List<Transaction> transactions = new ArrayList<>();
-        String sql = "SELECT transaction_id, account_from_id, account_to_id, transaction_type, amount\n" +
+        String sql = "SELECT transaction_id, account_from_id, account_to_id,amount\n" +
                 "FROM transactions\n" +
                 "WHERE account_from_id = (SELECT account_id FROM account WHERE user_id = ?)\n" +
                 "OR account_to_id = (SELECT account_id FROM account WHERE user_id = ?);";
@@ -46,7 +48,7 @@ public class JdbcTransactionDao implements TransactionDao {
 
     @Override
     public Transaction getTransactionById(long transactionId) {
-        String sql = "SELECT transaction_id, account_from_id, account_to_id, transaction_type, amount\n" +
+        String sql = "SELECT transaction_id, account_from_id, account_to_id,amount\n" +
                 "FROM transactions\n" +
                 "WHERE transaction_id = ?;";
         SqlRowSet results = this.jdbcTemplate.queryForRowSet(sql, transactionId);
@@ -59,31 +61,29 @@ public class JdbcTransactionDao implements TransactionDao {
 
     @Override
     public boolean sendTransaction(long fromAccount, long toAccount, BigDecimal amount) {
-        Account fromAc = new Account(fromAccount);
-        Account toAc = new Account(toAccount);
-        if (fromAccount == toAccount || amount.compareTo(fromAc.getBalance()) > 0 || amount.compareTo(ZERO) < 0 ){
-            return false;
-        }
+
         String sql = "INSERT INTO transactions (account_from_id, account_to_id, amount)\n" +
-                "VALUES ((SELECT account_id FROM account WHERE user_id = ?), (SELECT account_id FROM account WHERE user_id = ?), ?)" +
+                "VALUES (?,?,?)" +
                 "RETURNING transaction_id;";
         Integer newTransactionId;
         try {
             newTransactionId = jdbcTemplate.queryForObject(sql, Integer.class, fromAccount, toAccount, amount);
-        } catch (DataAccessException e){
-            return false;
-        }
-        String sql2 = "UPDATE account\n" +
+
+            String sql2 = "UPDATE account\n" +
                 "SET balance = balance + ?\n" +
                 "WHERE account_id = ?;";
-        jdbcTemplate.update(sql2, amount, toAccount);
+            jdbcTemplate.update(sql2, amount, toAccount);
 
-        String sql3 = "UPDATE account\n" +
+            String sql3 = "UPDATE account\n" +
                 "SET balance = balance - ?\n" +
                 "WHERE account_id = ?;";
-        jdbcTemplate.update(sql3, amount, fromAccount);
+            jdbcTemplate.update(sql3, amount, fromAccount);
 
-        return true;
+            return true;
+
+        } catch (DataAccessException e) {
+            return false;
+        }
     }
 
 
@@ -92,7 +92,6 @@ public class JdbcTransactionDao implements TransactionDao {
         transaction.setTransactionId(sqlRowSet.getLong("transaction_id"));
         transaction.setToAccount(sqlRowSet.getLong("account_to_id"));
         transaction.setFromAccount(sqlRowSet.getLong("account_from_id"));
-        transaction.setTransactionType(sqlRowSet.getString("transaction_type"));
         transaction.setAmount(sqlRowSet.getBigDecimal("amount"));
         return transaction;
     }
