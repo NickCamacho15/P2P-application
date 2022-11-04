@@ -67,16 +67,21 @@ public class JdbcTransactionDao implements TransactionDao {
         String sql = "INSERT INTO transactions (account_from_id, account_to_id, amount)\n" +
                 "VALUES ((SELECT account_id FROM account WHERE user_id = ?), (SELECT account_id FROM account WHERE user_id = ?), ?)" +
                 "RETURNING transaction_id;";
-
         Integer newTransactionId;
         try {
             newTransactionId = jdbcTemplate.queryForObject(sql, Integer.class, fromAccount, toAccount, amount);
         } catch (DataAccessException e){
             return false;
         }
+        String sql2 = "UPDATE account\n" +
+                "SET balance = balance + ?\n" +
+                "WHERE account_id = ?;";
+        jdbcTemplate.update(sql2, amount, toAccount);
 
-        fromAc.equals(fromAc.getBalance().subtract(amount));
-        toAc.equals(toAc.getBalance().add(amount));
+        String sql3 = "UPDATE account\n" +
+                "SET balance = balance - ?\n" +
+                "WHERE account_id = ?;";
+        jdbcTemplate.update(sql3, amount, fromAccount);
 
         return true;
     }
@@ -87,7 +92,7 @@ public class JdbcTransactionDao implements TransactionDao {
         transaction.setTransactionId(sqlRowSet.getLong("transaction_id"));
         transaction.setToAccount(sqlRowSet.getLong("account_to_id"));
         transaction.setFromAccount(sqlRowSet.getLong("account_from_id"));
-        transaction.setTransactionType(sqlRowSet.getNString("transaction_type"));
+        transaction.setTransactionType(sqlRowSet.getString("transaction_type"));
         transaction.setAmount(sqlRowSet.getBigDecimal("amount"));
         return transaction;
     }

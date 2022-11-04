@@ -10,4 +10,5 @@ public interface AccountDao {
     BigDecimal getBalanceById (long accountId);
 
     boolean createAccount(long id);
+
 }
